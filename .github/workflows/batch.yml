@@ -1,0 +1,65 @@
+# SNS自動投稿バッチシステム - GitHub Actions ワークフロー
+#
+# 毎日 19:00 JST (= 10:00 UTC) に実行
+# 手動実行 (workflow_dispatch) にも対応
+
+name: SNS Auto Publisher Batch
+
+on:
+  schedule:
+    # 毎日 10:00 UTC = 19:00 JST
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    # 手動実行用
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js 20.x をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: バッチ処理を実行
+        env:
+          # --- Google Drive API（必須） ---
+          GDRIVE_CREDENTIALS_JSON: ${{ secrets.GDRIVE_CREDENTIALS_JSON }}
+          GDRIVE_PENDING_FOLDER_ID: ${{ secrets.GDRIVE_PENDING_FOLDER_ID }}
+          GDRIVE_DONE_FOLDER_ID: ${{ secrets.GDRIVE_DONE_FOLDER_ID }}
+
+          # --- YouTube Data API v3（必須） ---
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+          # --- TikTok for Developers（必須） ---
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+
+          # --- Instagram Graph API（必須） ---
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_ACCOUNT_ID: ${{ secrets.IG_ACCOUNT_ID }}
+
+          # --- Gmail 通知（必須） ---
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+
+          # --- X (Twitter) API v2（任意） ---
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+
+        run: npx tsx src/index.ts
